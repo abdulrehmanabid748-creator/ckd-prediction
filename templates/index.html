@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CKD Prediction System</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      color: #333;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a73e8, #0d47a1);
+      color: white;
+      padding: 24px 40px;
+      text-align: center;
+    }
+
+    header h1 { font-size: 28px; font-weight: 600; }
+    header p  { font-size: 14px; opacity: 0.85; margin-top: 6px; }
+
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 28px 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+    }
+
+    .card h2 {
+      font-size: 17px;
+      color: #1a73e8;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e8f0fe;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border 0.2s;
+    }
+
+    .field input:focus {
+      outline: none;
+      border-color: #1a73e8;
+    }
+
+    .btn-predict {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-predict:hover { background: #1558b0; }
+
+    #result {
+      display: none;
+      margin-top: 24px;
+    }
+
+    .result-box {
+      border-radius: 12px;
+      padding: 28px;
+      text-align: center;
+    }
+
+    .result-ckd    { background: #fdecea; border: 2px solid #e53935; }
+    .result-no-ckd { background: #e8f5e9; border: 2px solid #43a047; }
+
+    .result-box .diagnosis {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .result-ckd    .diagnosis { color: #c62828; }
+    .result-no-ckd .diagnosis { color: #2e7d32; }
+
+    .result-box .confidence {
+      font-size: 15px;
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    .prob-grid {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-top: 16px;
+    }
+
+    .prob-item { text-align: center; }
+    .prob-item .val { font-size: 22px; font-weight: 700; }
+    .prob-item .lbl { font-size: 12px; color: #777; margin-top: 4px; }
+    .prob-ckd     .val { color: #e53935; }
+    .prob-healthy .val { color: #43a047; }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #888;
+      font-size: 15px;
+    }
+
+    .error-box {
+      background: #fff3e0;
+      border: 1.5px solid #ff9800;
+      border-radius: 10px;
+      padding: 16px 20px;
+      color: #e65100;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🩺 Chronic Kidney Disease Prediction</h1>
+  <p>Enter patient data below to get an AI-powered CKD diagnosis</p>
+</header>
+
+<div class="container">
+
+  <!-- Patient Basic Info -->
+  <div class="card">
+    <h2>👤 Patient Basic Information</h2>
+    <div class="grid">
+      <div class="field"><label>Age</label><input type="number" id="Age" placeholder="e.g. 45"></div>
+      <div class="field"><label>Gender (0=Female, 1=Male)</label><input type="number" id="Gender" placeholder="0 or 1"></div>
+      <div class="field"><label>Ethnicity</label><input type="number" id="Ethnicity" placeholder="0-3"></div>
+      <div class="field"><label>Socioeconomic Status</label><input type="number" id="SocioeconomicStatus" placeholder="0-2"></div>
+      <div class="field"><label>Education Level</label><input type="number" id="EducationLevel" placeholder="0-3"></div>
+    </div>
+  </div>
+
+  <!-- Lifestyle -->
+  <div class="card">
+    <h2>🏃 Lifestyle Factors</h2>
+    <div class="grid">
+      <div class="field"><label>BMI</label><input type="number" step="0.1" id="BMI" placeholder="e.g. 24.5"></div>
+      <div class="field"><label>Smoking (0=No, 1=Yes)</label><input type="number" id="Smoking" placeholder="0 or 1"></div>
+      <div class="field"><label>Alcohol Consumption</label><input type="number" step="0.1" id="AlcoholConsumption" placeholder="e.g. 2.5"></div>
+      <div class="field"><label>Physical Activity</label><input type="number" step="0.1" id="PhysicalActivity" placeholder="e.g. 3.0"></div>
+      <div class="field"><label>Diet Quality</label><input type="number" step="0.1" id="DietQuality" placeholder="e.g. 5.0"></div>
+      <div class="field"><label>Sleep Quality</label><input type="number" step="0.1" id="SleepQuality" placeholder="e.g. 7.0"></div>
+    </div>
+  </div>
+
+  <!-- Family History -->
+  <div class="card">
+    <h2>🧬 Family History & Medical Background</h2>
+    <div class="grid">
+      <div class="field"><label>Family History Kidney Disease</label><input type="number" id="FamilyHistoryKidneyDisease" placeholder="0 or 1"></div>
+      <div class="field"><label>Family History Hypertension</label><input type="number" id="FamilyHistoryHypertension" placeholder="0 or 1"></div>
+      <div class="field"><label>Family History Diabetes</label><input type="number" id="FamilyHistoryDiabetes" placeholder="0 or 1"></div>
+      <div class="field"><label>Previous Acute Kidney Injury</label><input type="number" id="PreviousAcuteKidneyInjury" placeholder="0 or 1"></div>
+      <div class="field"><label>Urinary Tract Infections</label><input type="number" id="UrinaryTractInfections" placeholder="0 or 1"></div>
+    </div>
+  </div>
+
+  <!-- Vitals -->
+  <div class="card">
+    <h2>💉 Vital Signs & Blood Tests</h2>
+    <div class="grid">
+      <div class="field"><label>Systolic BP</label><input type="number" step="0.1" id="SystolicBP" placeholder="e.g. 120"></div>
+      <div class="field"><label>Diastolic BP</label><input type="number" step="0.1" id="DiastolicBP" placeholder="e.g. 80"></div>
+      <div class="field"><label>Fasting Blood Sugar</label><input type="number" step="0.1" id="FastingBloodSugar" placeholder="e.g. 90"></div>
+      <div class="field"><label>HbA1c</label><input type="number" step="0.01" id="HbA1c" placeholder="e.g. 5.5"></div>
+      <div class="field"><label>Serum Creatinine</label><input type="number" step="0.01" id="SerumCreatinine" placeholder="e.g. 1.0"></div>
+      <div class="field"><label>BUN Levels</label><input type="number" step="0.1" id="BUNLevels" placeholder="e.g. 15"></div>
+      <div class="field"><label>GFR</label><input type="number" step="0.1" id="GFR" placeholder="e.g. 90"></div>
+      <div class="field"><label>Protein In Urine</label><input type="number" step="0.01" id="ProteinInUrine" placeholder="e.g. 0.1"></div>
+      <div class="field"><label>ACR</label><input type="number" step="0.1" id="ACR" placeholder="e.g. 10"></div>
+    </div>
+  </div>
+
+  <!-- Electrolytes & Cholesterol -->
+  <div class="card">
+    <h2>🔬 Electrolytes & Cholesterol</h2>
+    <div class="grid">
+      <div class="field"><label>Sodium</label><input type="number" step="0.1" id="SerumElectrolytesSodium" placeholder="e.g. 140"></div>
+      <div class="field"><label>Potassium</label><input type="number" step="0.1" id="SerumElectrolytesPotassium" placeholder="e.g. 4.0"></div>
+      <div class="field"><label>Calcium</label><input type="number" step="0.1" id="SerumElectrolytesCalcium" placeholder="e.g. 9.5"></div>
+      <div class="field"><label>Phosphorus</label><input type="number" step="0.1" id="SerumElectrolytesPhosphorus" placeholder="e.g. 3.5"></div>
+      <div class="field"><label>Hemoglobin Levels</label><input type="number" step="0.1" id="HemoglobinLevels" placeholder="e.g. 13.5"></div>
+      <div class="field"><label>Cholesterol Total</label><input type="number" step="0.1" id="CholesterolTotal" placeholder="e.g. 190"></div>
+      <div class="field"><label>Cholesterol LDL</label><input type="number" step="0.1" id="CholesterolLDL" placeholder="e.g. 110"></div>
+      <div class="field"><label>Cholesterol HDL</label><input type="number" step="0.1" id="CholesterolHDL" placeholder="e.g. 55"></div>
+      <div class="field"><label>Triglycerides</label><input type="number" step="0.1" id="CholesterolTriglycerides" placeholder="e.g. 150"></div>
+    </div>
+  </div>
+
+  <!-- Medications & Symptoms -->
+  <div class="card">
+    <h2>💊 Medications & Symptoms</h2>
+    <div class="grid">
+      <div class="field"><label>ACE Inhibitors (0/1)</label><input type="number" id="ACEInhibitors" placeholder="0 or 1"></div>
+      <div class="field"><label>Diuretics (0/1)</label><input type="number" id="Diuretics" placeholder="0 or 1"></div>
+      <div class="field"><label>NSAIDs Use (0/1)</label><input type="number" id="NSAIDsUse" placeholder="0 or 1"></div>
+      <div class="field"><label>Statins (0/1)</label><input type="number" id="Statins" placeholder="0 or 1"></div>
+      <div class="field"><label>Antidiabetic Medications (0/1)</label><input type="number" id="AntidiabeticMedications" placeholder="0 or 1"></div>
+      <div class="field"><label>Edema (0/1)</label><input type="number" id="Edema" placeholder="0 or 1"></div>
+      <div class="field"><label>Fatigue Levels (0-10)</label><input type="number" step="0.1" id="FatigueLevels" placeholder="e.g. 3"></div>
+      <div class="field"><label>Nausea/Vomiting (0/1)</label><input type="number" id="NauseaVomiting" placeholder="0 or 1"></div>
+      <div class="field"><label>Muscle Cramps (0/1)</label><input type="number" id="MuscleCramps" placeholder="0 or 1"></div>
+      <div class="field"><label>Itching (0/1)</label><input type="number" id="Itching" placeholder="0 or 1"></div>
+    </div>
+  </div>
+
+  <!-- Other -->
+  <div class="card">
+    <h2>🌍 Environmental & Other Factors</h2>
+    <div class="grid">
+      <div class="field"><label>Quality of Life Score</label><input type="number" step="0.1" id="QualityOfLifeScore" placeholder="e.g. 70"></div>
+      <div class="field"><label>Heavy Metals Exposure (0/1)</label><input type="number" id="HeavyMetalsExposure" placeholder="0 or 1"></div>
+      <div class="field"><label>Occupational Chemical Exposure (0/1)</label><input type="number" id="OccupationalExposureChemicals" placeholder="0 or 1"></div>
+      <div class="field"><label>Water Quality (0/1)</label><input type="number" id="WaterQuality" placeholder="0 or 1"></div>
+      <div class="field"><label>Medical Checkups Frequency</label><input type="number" step="0.1" id="MedicalCheckupsFrequency" placeholder="e.g. 2"></div>
+      <div class="field"><label>Medication Adherence</label><input type="number" step="0.1" id="MedicationAdherence" placeholder="e.g. 8"></div>
+      <div class="field"><label>Health Literacy</label><input type="number" step="0.1" id="HealthLiteracy" placeholder="e.g. 6"></div>
+    </div>
+  </div>
+
+  <button class="btn-predict" onclick="predict()">🔍 Predict CKD</button>
+
+  <div id="result"></div>
+
+</div>
+
+<script>
+  async function predict() {
+    const features = [
+      'Age','Gender','Ethnicity','SocioeconomicStatus','EducationLevel',
+      'BMI','Smoking','AlcoholConsumption','PhysicalActivity','DietQuality',
+      'SleepQuality','FamilyHistoryKidneyDisease','FamilyHistoryHypertension',
+      'FamilyHistoryDiabetes','PreviousAcuteKidneyInjury','UrinaryTractInfections',
+      'SystolicBP','DiastolicBP','FastingBloodSugar','HbA1c',
+      'SerumCreatinine','BUNLevels','GFR','ProteinInUrine',
+      'ACR','SerumElectrolytesSodium','SerumElectrolytesPotassium',
+      'SerumElectrolytesCalcium','SerumElectrolytesPhosphorus','HemoglobinLevels','CholesterolTotal',
+      'CholesterolLDL','CholesterolHDL','CholesterolTriglycerides',
+      'ACEInhibitors','Diuretics','NSAIDsUse','Statins','AntidiabeticMedications',
+      'Edema','FatigueLevels','NauseaVomiting','MuscleCramps','Itching',
+      'QualityOfLifeScore','HeavyMetalsExposure','OccupationalExposureChemicals',
+      'WaterQuality','MedicalCheckupsFrequency','MedicationAdherence','HealthLiteracy'
+    ];
+
+    const resultDiv = document.getElementById('result');
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<div class="loading">⏳ Analyzing patient data...</div>';
+
+    const data = {};
+    for (const f of features) {
+      const val = document.getElementById(f)?.value;
+      if (val === '' || val === null || val === undefined) {
+        resultDiv.innerHTML = '<div class="error-box">⚠️ Please fill all fields before predicting.</div>';
+        return;
+      }
+      data[f] = parseFloat(val);
+    }
+
+    try {
+      const response = await fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const res = await response.json();
+
+      if (res.error) {
+        resultDiv.innerHTML = '<div class="error-box">❌ Error: ' + res.error + '</div>';
+        return;
+      }
+
+      const isCKD = res.prediction === 1;
+      const boxClass = isCKD ? 'result-ckd' : 'result-no-ckd';
+      const icon = isCKD ? '🔴' : '🟢';
+
+      resultDiv.innerHTML = `
+        <div class="result-box ${boxClass}">
+          <div class="diagnosis">${icon} ${res.diagnosis}</div>
+          <div class="confidence">Model Confidence: <strong>${res.confidence}%</strong></div>
+          <div class="prob-grid">
+            <div class="prob-item prob-ckd">
+              <div class="val">${res.ckd_probability}%</div>
+              <div class="lbl">CKD Probability</div>
+            </div>
+            <div class="prob-item prob-healthy">
+              <div class="val">${res.healthy_probability}%</div>
+              <div class="lbl">Healthy Probability</div>
+            </div>
+          </div>
+        </div>
+      `;
+    } catch (e) {
+      resultDiv.innerHTML = '<div class="error-box">❌ Could not connect to server. Make sure Flask is running.</div>';
+    }
+  }
+</script>
+
+</body>
+</html>
